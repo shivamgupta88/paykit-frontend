@@ -6,6 +6,7 @@ import LandingPage from './pages/LandingPage'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import DashboardPage from './pages/DashboardPage'
+import CustomersPage from './pages/CustomersPage'
 
 export default function App() {
   return (
@@ -21,7 +22,7 @@ export default function App() {
           <Route element={<ProtectedRoute />}>
             <Route element={<AppShell />}>
               <Route path="/dashboard" element={<DashboardPage />} />
-              <Route path="/customers" element={<DashboardPage />} />
+              <Route path="/customers" element={<CustomersPage />} />
               <Route path="/invoices" element={<DashboardPage />} />
               <Route path="/payments" element={<DashboardPage />} />
             </Route>
