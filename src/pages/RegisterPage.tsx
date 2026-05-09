@@ -93,9 +93,6 @@ export default function RegisterPage() {
       <div
         className="lg-panel"
         style={{ display: 'none', width: '42%', background: '#0f172a', flexDirection: 'column', justifyContent: 'space-between', padding: '48px', position: 'sticky', top: 0, height: '100vh' }}
-        ref={(el) => {
-          if (el) el.style.display = window.innerWidth >= 1024 ? 'flex' : 'none'
-        }}
       >
         <Link to="/" style={{ textDecoration: 'none' }}>
           <span style={{ fontSize: 22, fontWeight: 800, color: '#fff', letterSpacing: '-0.02em' }}>

@@ -222,7 +222,7 @@ export default function LandingPage() {
                 <h3 style={{ fontWeight: 700, color: '#0f172a', fontSize: 15, marginBottom: 8 }}>{s.title}</h3>
                 <p style={{ color: '#64748b', fontSize: 13, lineHeight: 1.6 }}>{s.desc}</p>
                 {i < steps.length - 1 && (
-                  <div style={{ position: 'absolute', top: '50%', right: -12, transform: 'translateY(-50%)', color: '#c7d2fe', fontSize: 18, display: window.innerWidth < 640 ? 'none' : 'block' }}>→</div>
+                  <div className="step-arrow" style={{ position: 'absolute', top: '50%', right: -12, transform: 'translateY(-50%)', color: '#c7d2fe', fontSize: 18 }}>→</div>
                 )}
               </div>
             ))}

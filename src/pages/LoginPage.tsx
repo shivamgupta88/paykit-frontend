@@ -72,12 +72,7 @@ export default function LoginPage() {
         <div style={{ display: 'flex', minHeight: '100vh' }}>
 
           {/* Left: Dark brand panel */}
-          <div style={{ display: 'none', width: '42%', background: '#0f172a', flexDirection: 'column', justifyContent: 'space-between', padding: '48px', position: 'sticky', top: 0, height: '100vh' }}
-            className="lg-panel"
-            ref={(el) => {
-              if (el) el.style.display = window.innerWidth >= 1024 ? 'flex' : 'none'
-            }}
-          >
+          <div className="lg-panel" style={{ display: 'none', width: '42%', background: '#0f172a', flexDirection: 'column', justifyContent: 'space-between', padding: '48px', position: 'sticky', top: 0, height: '100vh' }}>
             <Link to="/" style={{ textDecoration: 'none' }}>
               <span style={{ fontSize: 22, fontWeight: 800, color: '#fff', letterSpacing: '-0.02em' }}>
                 Pay<span style={{ color: '#818cf8' }}>Kit</span>

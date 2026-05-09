@@ -16,3 +16,11 @@ body {
 #root {
   min-height: 100vh;
 }
+
+@media (min-width: 1024px) {
+  .lg-panel { display: flex !important; }
+}
+
+@media (max-width: 639px) {
+  .step-arrow { display: none !important; }
+}
