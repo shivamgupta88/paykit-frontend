@@ -1,73 +1,96 @@
-# React + TypeScript + Vite
+# PayKit Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React frontend for the [PayKit](https://github.com/shivamgupta88/paykit) multi-tenant invoicing and payment platform.
 
-Currently, two official plugins are available:
+## Tech Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- **React 19** + **TypeScript**
+- **Vite 8** — build tool
+- **Tailwind CSS v4** — utility-first styling
+- **React Router v7** — client-side routing
+- **Axios** — HTTP client with JWT interceptor
 
-## React Compiler
+## Features
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+| Module | Description |
+|---|---|
+| Landing Page | Hero, feature cards, how-it-works, CTA |
+| Auth | 2-step workspace + account registration, login |
+| Dashboard | Revenue stats, recent invoices, shimmer loading |
+| Customers | List, search, create, edit, delete |
+| Invoices | List with status tabs, create with dynamic line items |
+| Invoice Detail | Document view, status transitions, PDF download |
+| Payments | Razorpay collection, payment history |
 
-## Expanding the ESLint configuration
+## Getting Started
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+### Prerequisites
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+- Node.js 18+
+- PayKit backend running (see [backend repo](https://github.com/shivamgupta88/paykit))
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+### Setup
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+# Clone
+git clone https://github.com/shivamgupta88/paykit-frontend.git
+cd paykit-frontend
+
+# Install dependencies
+npm install
+
+# Configure environment
+cp .env.example .env.local
+# Edit .env.local — set VITE_API_URL to your backend URL
+
+# Start dev server
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+App runs at `http://localhost:5173`
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+### Environment Variables
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+| Variable | Description | Default |
+|---|---|---|
+| `VITE_API_URL` | PayKit backend base URL | `http://localhost:8080` |
+
+### Build for Production
+
+```bash
+npm run build
+# Output in dist/
 ```
+
+## Project Structure
+
+```
+src/
+├── api/                   # Axios API clients
+│   ├── client.ts          # Base instance + JWT interceptor
+│   ├── auth.ts            # Register, login, tenant
+│   ├── customers.ts       # Customer CRUD
+│   ├── invoices.ts        # Invoice CRUD + PDF download
+│   └── payments.ts        # Razorpay initiate + verify
+├── components/
+│   ├── AppShell.tsx       # Sidebar layout for dashboard
+│   └── ProtectedRoute.tsx # Auth guard
+├── context/
+│   └── AuthContext.tsx    # JWT + localStorage auth state
+└── pages/
+    ├── LandingPage.tsx
+    ├── LoginPage.tsx
+    ├── RegisterPage.tsx
+    ├── DashboardPage.tsx
+    ├── CustomersPage.tsx
+    ├── InvoicesPage.tsx
+    ├── CreateInvoicePage.tsx
+    ├── InvoiceDetailPage.tsx
+    └── PaymentsPage.tsx
+```
+
+## Backend
+
+Spring Boot 3.2 + Java 21 with multi-tenancy, JWT auth, PostgreSQL, Redis, Razorpay, iText 8 PDF, and AES-256 encryption.
+
+See the [backend repository](https://github.com/shivamgupta88/paykit) for setup instructions.
