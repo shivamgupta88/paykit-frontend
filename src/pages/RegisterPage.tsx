@@ -51,7 +51,7 @@ export default function RegisterPage() {
     try {
       await authApi.register({ tenantId, ...account })
       const loginRes = await authApi.login({ tenantId, email: account.email, password: account.password })
-      login({ token: loginRes.data.token, userId: loginRes.data.userId, tenantId, email: account.email })
+      login({ token: loginRes.data.token, userId: loginRes.data.userId, tenantId, email: account.email, workspaceName: workspace.name })
       navigate('/dashboard')
     } catch (err: any) {
       setError(err?.response?.data?.message || 'Registration failed. Please try again.')

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { invoicesApi, type InvoiceStatus } from '../api/invoices'
 import { customersApi } from '../api/customers'
 
@@ -31,28 +31,37 @@ function Skeleton({ w, h, radius = 6 }: { w: number | string; h: number; radius?
 }
 
 export default function DashboardPage() {
+  const navigate = useNavigate()
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [customerCount, setCustomerCount] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
   useEffect(() => {
+    const controller = new AbortController()
     const load = async () => {
       try {
         const [invRes, custRes] = await Promise.all([
           invoicesApi.list(undefined, 0, 100),
           customersApi.list(0, 1),
         ])
-        setInvoices(invRes.data.content ?? invRes.data ?? [])
-        const custTotal = custRes.data.totalElements ?? custRes.data.length ?? 0
-        setCustomerCount(custTotal)
+        if (!controller.signal.aborted) {
+          setInvoices(invRes.data.content ?? invRes.data ?? [])
+          const custTotal = custRes.data.totalElements ?? custRes.data.length ?? 0
+          setCustomerCount(custTotal)
+        }
       } catch {
-        setError('Failed to load dashboard data.')
+        if (!controller.signal.aborted) {
+          setError('Failed to load dashboard data.')
+        }
       } finally {
-        setLoading(false)
+        if (!controller.signal.aborted) {
+          setLoading(false)
+        }
       }
     }
     load()
+    return () => controller.abort()
   }, [])
 
   // Compute stats from invoices
@@ -141,6 +150,27 @@ export default function DashboardPage() {
         </div>
       )}
 
+      {/* Overdue alert banner */}
+      {!loading && overdueCount > 0 && (
+        <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 10, padding: '12px 18px', marginBottom: 24, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ width: 28, height: 28, borderRadius: 8, background: '#fef3c7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, flexShrink: 0 }}>⚠️</div>
+            <div>
+              <p style={{ fontSize: 13, fontWeight: 700, color: '#92400e', marginBottom: 1 }}>
+                {overdueCount} overdue invoice{overdueCount !== 1 ? 's' : ''} — {fmt(invoices.filter(i => i.status === 'OVERDUE').reduce((s, i) => s + i.totalAmount, 0))} at risk
+              </p>
+              <p style={{ fontSize: 12, color: '#b45309' }}>Follow up with customers to collect outstanding payments</p>
+            </div>
+          </div>
+          <Link
+            to="/invoices?status=OVERDUE"
+            style={{ padding: '6px 14px', borderRadius: 7, background: '#f59e0b', color: '#fff', fontSize: 12, fontWeight: 700, textDecoration: 'none', whiteSpace: 'nowrap', flexShrink: 0 }}
+          >
+            View overdue →
+          </Link>
+        </div>
+      )}
+
       {/* Stat cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, marginBottom: 32 }}>
         {stats.map((s) => (
@@ -219,7 +249,7 @@ export default function DashboardPage() {
                     style={{ borderBottom: idx < recentInvoices.length - 1 ? '1px solid #f8fafc' : 'none', cursor: 'pointer', transition: 'background 0.1s' }}
                     onMouseEnter={e => (e.currentTarget.style.background = '#f8fafc')}
                     onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-                    onClick={() => window.location.href = `/invoices/${inv.id}`}
+                    onClick={() => navigate(`/invoices/${inv.id}`)}
                   >
                     <td style={{ padding: '13px 22px', fontSize: 13, fontWeight: 600, color: '#4f46e5', fontFamily: 'monospace' }}>
                       {inv.invoiceNumber}

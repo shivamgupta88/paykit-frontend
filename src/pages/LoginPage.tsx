@@ -22,6 +22,7 @@ export default function LoginPage() {
     try {
       const tenantRes = await authApi.getTenantBySlug(form.slug)
       const tenantId = tenantRes.data.id
+      const workspaceName = tenantRes.data.name
 
       const loginRes = await authApi.login({
         tenantId,
@@ -34,6 +35,7 @@ export default function LoginPage() {
         userId: loginRes.data.userId,
         tenantId,
         email: form.email,
+        workspaceName,
       })
 
       navigate('/dashboard')

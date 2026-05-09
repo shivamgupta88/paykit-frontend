@@ -41,7 +41,7 @@ function Skeleton({ w, h, radius = 6 }: { w: number | string; h: number; radius?
 }
 
 // Load Razorpay script once
-function useRazorpay() {
+function useRazorpay(onError: () => void) {
   const loaded = useRef(false)
   useEffect(() => {
     if (loaded.current || document.querySelector('script[src*="razorpay"]')) {
@@ -52,12 +52,14 @@ function useRazorpay() {
     script.src = 'https://checkout.razorpay.com/v1/checkout.js'
     script.async = true
     script.onload = () => { loaded.current = true }
+    script.onerror = () => { onError() }
     document.body.appendChild(script)
   }, [])
 }
 
 export default function PaymentsPage() {
-  useRazorpay()
+  const [rzpLoadError, setRzpLoadError] = useState(false)
+  useRazorpay(() => setRzpLoadError(true))
 
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [loading, setLoading] = useState(true)
@@ -140,8 +142,9 @@ export default function PaymentsPage() {
         },
       })
       rzp.open()
-    } catch (err: any) {
-      setPayError(err?.response?.data?.message || 'Failed to initiate payment.')
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
+      setPayError(msg || 'Failed to initiate payment.')
     } finally {
       setInitiating(null)
     }
@@ -183,11 +186,31 @@ export default function PaymentsPage() {
         ))}
       </div>
 
+      {rzpLoadError && (
+        <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, padding: '11px 16px', fontSize: 13, color: '#dc2626', marginBottom: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+          <span>Razorpay failed to load — payment collection unavailable. Check your internet connection.</span>
+          <button
+            onClick={() => { setRzpLoadError(false); window.location.reload() }}
+            style={{ padding: '5px 12px', borderRadius: 6, border: '1.5px solid #dc2626', background: 'transparent', color: '#dc2626', fontSize: 12, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', fontFamily: 'inherit' }}
+          >
+            Retry
+          </button>
+        </div>
+      )}
       {error && (
         <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, padding: '11px 16px', fontSize: 13, color: '#dc2626', marginBottom: 20 }}>{error}</div>
       )}
       {payError && (
-        <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, padding: '11px 16px', fontSize: 13, color: '#dc2626', marginBottom: 20 }}>{payError}</div>
+        <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, padding: '11px 16px', fontSize: 13, color: '#dc2626', marginBottom: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+          <span>{payError}</span>
+          <button
+            onClick={() => setPayError('')}
+            style={{ padding: '3px 8px', borderRadius: 5, border: 'none', background: 'transparent', color: '#dc2626', fontSize: 16, cursor: 'pointer', lineHeight: 1 }}
+            aria-label="Dismiss"
+          >
+            ×
+          </button>
+        </div>
       )}
 
       {/* Pending payments */}

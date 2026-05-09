@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
@@ -54,6 +55,7 @@ const navItems = [
 export default function AppShell() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
+  const [sidebarOpen, setSidebarOpen] = useState(false)
 
   const handleLogout = () => {
     logout()
@@ -64,116 +66,161 @@ export default function AppShell() {
     ? user.email.slice(0, 2).toUpperCase()
     : 'U'
 
+  const workspaceName = user?.workspaceName || 'Workspace'
+
+  const SidebarContent = () => (
+    <>
+      {/* Logo */}
+      <div style={{ padding: '20px 20px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+        <span style={{ fontSize: 18, fontWeight: 800, color: '#fff', letterSpacing: '-0.02em' }}>
+          Pay<span style={{ color: '#818cf8' }}>Kit</span>
+        </span>
+        <div style={{ fontSize: 11, color: '#475569', marginTop: 2, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {workspaceName}
+        </div>
+      </div>
+
+      {/* Nav */}
+      <nav style={{ padding: '12px 10px', flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
+        {navItems.map((item) => (
+          <NavLink
+            key={item.to}
+            to={item.to}
+            end={item.to === '/dashboard'}
+            onClick={() => setSidebarOpen(false)}
+            style={({ isActive }) => ({
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              padding: '8px 12px',
+              borderRadius: 8,
+              textDecoration: 'none',
+              fontSize: 13,
+              fontWeight: 600,
+              color: isActive ? '#fff' : '#94a3b8',
+              background: isActive ? 'rgba(99,102,241,0.18)' : 'transparent',
+              transition: 'all 0.15s ease-in-out',
+            })}
+            onMouseEnter={e => {
+              const el = e.currentTarget
+              if (el.getAttribute('aria-current') !== 'page') {
+                el.style.background = 'rgba(255,255,255,0.06)'
+                el.style.color = '#e2e8f0'
+              }
+            }}
+            onMouseLeave={e => {
+              const el = e.currentTarget
+              if (el.getAttribute('aria-current') !== 'page') {
+                el.style.background = 'transparent'
+                el.style.color = '#94a3b8'
+              }
+            }}
+          >
+            {item.icon}
+            {item.label}
+          </NavLink>
+        ))}
+      </nav>
+
+      {/* User */}
+      <div style={{ padding: '12px 10px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderRadius: 8 }}>
+          <div style={{
+            width: 30, height: 30, borderRadius: '50%',
+            background: 'linear-gradient(135deg, #4f46e5, #818cf8)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 11, fontWeight: 700, color: '#fff', flexShrink: 0,
+          }}>
+            {initials}
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p style={{ fontSize: 12, fontWeight: 600, color: '#e2e8f0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {user?.email ?? 'User'}
+            </p>
+            <p style={{ fontSize: 11, color: '#475569' }}>Admin</p>
+          </div>
+        </div>
+        <button
+          onClick={handleLogout}
+          aria-label="Sign out"
+          style={{
+            width: '100%', marginTop: 4, padding: '7px 12px', borderRadius: 8,
+            background: 'transparent', border: 'none', cursor: 'pointer',
+            fontSize: 12, fontWeight: 600, color: '#64748b', textAlign: 'left',
+            display: 'flex', alignItems: 'center', gap: 8, fontFamily: 'inherit',
+            transition: 'all 0.15s ease-in-out',
+          }}
+          onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.1)'; e.currentTarget.style.color = '#f87171' }}
+          onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#64748b' }}
+        >
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <path d="M5 1H2a1 1 0 00-1 1v10a1 1 0 001 1h3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+            <path d="M9.5 10L13 7l-3.5-3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+            <line x1="13" y1="7" x2="5" y2="7" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+          </svg>
+          Sign out
+        </button>
+      </div>
+    </>
+  )
+
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: '#f8fafc' }}>
 
-      {/* Sidebar */}
-      <aside style={{
+      {/* Desktop sidebar */}
+      <aside className="sidebar-desktop" style={{
         width: 232,
         background: '#0f172a',
         display: 'flex',
         flexDirection: 'column',
         position: 'fixed',
-        top: 0,
-        left: 0,
-        bottom: 0,
+        top: 0, left: 0, bottom: 0,
         zIndex: 40,
         flexShrink: 0,
       }}>
-        {/* Logo */}
-        <div style={{ padding: '20px 20px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-          <span style={{ fontSize: 18, fontWeight: 800, color: '#fff', letterSpacing: '-0.02em' }}>
-            Pay<span style={{ color: '#818cf8' }}>Kit</span>
-          </span>
-          <div style={{ fontSize: 11, color: '#475569', marginTop: 2, fontWeight: 500 }}>
-            Workspace dashboard
-          </div>
-        </div>
-
-        {/* Nav */}
-        <nav style={{ padding: '12px 10px', flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
-          {navItems.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.to === '/dashboard'}
-              style={({ isActive }) => ({
-                display: 'flex',
-                alignItems: 'center',
-                gap: 10,
-                padding: '8px 12px',
-                borderRadius: 8,
-                textDecoration: 'none',
-                fontSize: 13,
-                fontWeight: 600,
-                color: isActive ? '#fff' : '#94a3b8',
-                background: isActive ? 'rgba(99,102,241,0.18)' : 'transparent',
-                transition: 'all 0.15s',
-              })}
-              onMouseEnter={e => {
-                const el = e.currentTarget
-                if (!el.className.includes('active')) {
-                  el.style.background = 'rgba(255,255,255,0.06)'
-                  el.style.color = '#e2e8f0'
-                }
-              }}
-              onMouseLeave={e => {
-                const el = e.currentTarget
-                // NavLink active state check via aria
-                if (el.getAttribute('aria-current') !== 'page') {
-                  el.style.background = 'transparent'
-                  el.style.color = '#94a3b8'
-                }
-              }}
-            >
-              {item.icon}
-              {item.label}
-            </NavLink>
-          ))}
-        </nav>
-
-        {/* User */}
-        <div style={{ padding: '12px 10px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderRadius: 8 }}>
-            <div style={{
-              width: 30, height: 30, borderRadius: '50%',
-              background: 'linear-gradient(135deg, #4f46e5, #818cf8)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 11, fontWeight: 700, color: '#fff', flexShrink: 0,
-            }}>
-              {initials}
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{ fontSize: 12, fontWeight: 600, color: '#e2e8f0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {user?.email ?? 'User'}
-              </p>
-              <p style={{ fontSize: 11, color: '#475569' }}>Admin</p>
-            </div>
-          </div>
-          <button
-            onClick={handleLogout}
-            style={{
-              width: '100%', marginTop: 4, padding: '7px 12px', borderRadius: 8,
-              background: 'transparent', border: 'none', cursor: 'pointer',
-              fontSize: 12, fontWeight: 600, color: '#64748b', textAlign: 'left',
-              display: 'flex', alignItems: 'center', gap: 8, fontFamily: 'inherit',
-              transition: 'all 0.15s',
-            }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(239,68,68,0.1)'; e.currentTarget.style.color = '#f87171' }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#64748b' }}
-          >
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-              <path d="M5 1H2a1 1 0 00-1 1v10a1 1 0 001 1h3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-              <path d="M9.5 10L13 7l-3.5-3" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
-              <line x1="13" y1="7" x2="5" y2="7" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
-            </svg>
-            Sign out
-          </button>
-        </div>
+        <SidebarContent />
       </aside>
 
+      {/* Mobile: overlay sidebar */}
+      {sidebarOpen && (
+        <>
+          <div
+            style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.6)', zIndex: 49 }}
+            onClick={() => setSidebarOpen(false)}
+          />
+          <aside style={{
+            width: 232, background: '#0f172a',
+            display: 'flex', flexDirection: 'column',
+            position: 'fixed', top: 0, left: 0, bottom: 0,
+            zIndex: 50,
+            animation: 'slide-in-left 0.2s ease-out',
+          }}>
+            <SidebarContent />
+          </aside>
+        </>
+      )}
+
       {/* Main content */}
-      <main style={{ marginLeft: 232, flex: 1, minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+      <main className="main-content" style={{ marginLeft: 232, flex: 1, minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+
+        {/* Mobile top bar */}
+        <div className="mobile-topbar" style={{ display: 'none', alignItems: 'center', gap: 12, padding: '12px 16px', background: '#0f172a', position: 'sticky', top: 0, zIndex: 30 }}>
+          <button
+            onClick={() => setSidebarOpen(true)}
+            aria-label="Open menu"
+            style={{ width: 36, height: 36, borderRadius: 8, border: 'none', background: 'rgba(255,255,255,0.08)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', flexShrink: 0 }}
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+              <line x1="2" y1="4" x2="14" y2="4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              <line x1="2" y1="8" x2="14" y2="8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              <line x1="2" y1="12" x2="14" y2="12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
+          </button>
+          <span style={{ fontSize: 16, fontWeight: 800, color: '#fff', letterSpacing: '-0.02em' }}>
+            Pay<span style={{ color: '#818cf8' }}>Kit</span>
+          </span>
+        </div>
+
         <Outlet />
       </main>
     </div>

@@ -1,10 +1,11 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import { createContext, useContext, useState, ReactNode } from 'react'
 
 interface User {
   userId: string
   tenantId: string
   token: string
   email?: string
+  workspaceName?: string
 }
 
 interface AuthContextType {
@@ -21,7 +22,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const token = localStorage.getItem('token')
     const userId = localStorage.getItem('userId')
     const tenantId = localStorage.getItem('tenantId')
-    if (token && userId && tenantId) return { token, userId, tenantId }
+    const workspaceName = localStorage.getItem('workspaceName') ?? undefined
+    if (token && userId && tenantId) return { token, userId, tenantId, workspaceName }
     return null
   })
 
@@ -29,6 +31,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('token', data.token)
     localStorage.setItem('userId', data.userId)
     localStorage.setItem('tenantId', data.tenantId)
+    if (data.workspaceName) localStorage.setItem('workspaceName', data.workspaceName)
     setUser(data)
   }
 

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { invoicesApi, type InvoiceStatus } from '../api/invoices'
+import { useToast } from '../context/ToastContext'
 
 interface LineItem {
   description: string
@@ -35,10 +36,10 @@ const statusConfig: Record<InvoiceStatus, { label: string; color: string; bg: st
 }
 
 // What transitions are allowed from each status
-const transitions: Record<InvoiceStatus, { to: InvoiceStatus; label: string; color: string; bg: string }[]> = {
-  DRAFT:     [{ to: 'SENT', label: 'Mark as Sent', color: '#2563eb', bg: '#eff6ff' }, { to: 'CANCELLED', label: 'Cancel Invoice', color: '#dc2626', bg: '#fef2f2' }],
-  SENT:      [{ to: 'PAID', label: 'Mark as Paid', color: '#059669', bg: '#ecfdf5' }, { to: 'CANCELLED', label: 'Cancel Invoice', color: '#dc2626', bg: '#fef2f2' }],
-  OVERDUE:   [{ to: 'PAID', label: 'Mark as Paid', color: '#059669', bg: '#ecfdf5' }, { to: 'CANCELLED', label: 'Cancel Invoice', color: '#dc2626', bg: '#fef2f2' }],
+const transitions: Record<InvoiceStatus, { to: InvoiceStatus; label: string; color: string; bg: string; destructive?: boolean }[]> = {
+  DRAFT:     [{ to: 'SENT', label: 'Mark as Sent', color: '#2563eb', bg: '#eff6ff' }, { to: 'CANCELLED', label: 'Cancel Invoice', color: '#dc2626', bg: '#fef2f2', destructive: true }],
+  SENT:      [{ to: 'PAID', label: 'Mark as Paid', color: '#059669', bg: '#ecfdf5' }, { to: 'CANCELLED', label: 'Cancel Invoice', color: '#dc2626', bg: '#fef2f2', destructive: true }],
+  OVERDUE:   [{ to: 'SENT', label: 'Mark as Sent', color: '#2563eb', bg: '#eff6ff' }, { to: 'PAID', label: 'Mark as Paid', color: '#059669', bg: '#ecfdf5' }, { to: 'CANCELLED', label: 'Cancel Invoice', color: '#dc2626', bg: '#fef2f2', destructive: true }],
   PAID:      [],
   CANCELLED: [],
 }
@@ -54,11 +55,13 @@ function SkeletonBlock({ h, w = '100%' }: { h: number; w?: string | number }) {
 export default function InvoiceDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const { toast } = useToast()
   const [invoice, setInvoice] = useState<Invoice | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [updating, setUpdating] = useState<InvoiceStatus | null>(null)
   const [pdfLoading, setPdfLoading] = useState(false)
+  const [confirmCancel, setConfirmCancel] = useState(false)
 
   const load = async () => {
     if (!id) return
@@ -77,12 +80,22 @@ export default function InvoiceDetailPage() {
 
   const handleStatusUpdate = async (newStatus: InvoiceStatus) => {
     if (!id) return
+    setConfirmCancel(false)
     setUpdating(newStatus)
     try {
       await invoicesApi.updateStatus(id, newStatus)
+      const labels: Record<InvoiceStatus, string> = {
+        SENT: 'Invoice marked as sent',
+        PAID: 'Invoice marked as paid',
+        CANCELLED: 'Invoice cancelled',
+        DRAFT: 'Invoice moved to draft',
+        OVERDUE: 'Invoice marked overdue',
+      }
+      toast(labels[newStatus] || 'Status updated')
       await load()
-    } catch (err: any) {
-      setError(err?.response?.data?.message || 'Failed to update status.')
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
+      setError(msg || 'Failed to update status.')
     } finally {
       setUpdating(null)
     }
@@ -91,17 +104,19 @@ export default function InvoiceDetailPage() {
   const handlePdfDownload = async () => {
     if (!id || !invoice) return
     setPdfLoading(true)
+    let url: string | null = null
     try {
       const res = await invoicesApi.downloadPdf(id)
-      const url = URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }))
+      url = URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }))
       const a = document.createElement('a')
       a.href = url
       a.download = `${invoice.invoiceNumber}.pdf`
       a.click()
-      URL.revokeObjectURL(url)
+      toast('PDF downloaded')
     } catch {
-      setError('Failed to download PDF.')
+      setError('Failed to download PDF. Please try again.')
     } finally {
+      if (url) URL.revokeObjectURL(url)
       setPdfLoading(false)
     }
   }
@@ -373,9 +388,9 @@ export default function InvoiceDetailPage() {
                 {availableTransitions.map(t => (
                   <button
                     key={t.to}
-                    onClick={() => handleStatusUpdate(t.to)}
+                    onClick={() => t.destructive ? setConfirmCancel(true) : handleStatusUpdate(t.to)}
                     disabled={!!updating}
-                    style={{ width: '100%', padding: '9px 14px', borderRadius: 8, border: `1.5px solid ${t.color}22`, background: t.bg, fontSize: 13, fontWeight: 700, color: t.color, cursor: updating ? 'not-allowed' : 'pointer', fontFamily: 'inherit', opacity: updating ? 0.6 : 1, transition: 'all 0.15s', textAlign: 'left' }}
+                    style={{ width: '100%', padding: '9px 14px', borderRadius: 8, border: `1.5px solid ${t.color}22`, background: t.bg, fontSize: 13, fontWeight: 700, color: t.color, cursor: updating ? 'not-allowed' : 'pointer', fontFamily: 'inherit', opacity: updating ? 0.6 : 1, transition: 'all 0.15s ease-in-out', textAlign: 'left' }}
                   >
                     {updating === t.to ? 'Updating…' : t.label}
                   </button>
@@ -433,6 +448,35 @@ export default function InvoiceDetailPage() {
           </button>
         </div>
       </div>
+
+      {/* Cancel confirmation modal */}
+      {confirmCancel && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ position: 'absolute', inset: 0, background: 'rgba(15,23,42,0.45)', backdropFilter: 'blur(2px)' }} onClick={() => setConfirmCancel(false)} />
+          <div style={{ position: 'relative', background: '#fff', borderRadius: 16, width: '100%', maxWidth: 400, margin: '16px', boxShadow: '0 24px 64px rgba(0,0,0,0.15)', padding: '28px 24px' }}>
+            <div style={{ fontSize: 32, marginBottom: 12, textAlign: 'center' }}>⚠️</div>
+            <h3 style={{ fontSize: 16, fontWeight: 700, color: '#0f172a', marginBottom: 8, textAlign: 'center' }}>Cancel this invoice?</h3>
+            <p style={{ fontSize: 14, color: '#64748b', marginBottom: 24, textAlign: 'center', lineHeight: 1.6 }}>
+              This will permanently cancel <strong>{invoice?.invoiceNumber}</strong>. This action cannot be undone.
+            </p>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                onClick={() => setConfirmCancel(false)}
+                style={{ flex: 1, padding: '9px', borderRadius: 8, border: '1.5px solid #e2e8f0', background: '#fff', fontSize: 13, fontWeight: 600, color: '#374151', cursor: 'pointer', fontFamily: 'inherit' }}
+              >
+                Keep Invoice
+              </button>
+              <button
+                onClick={() => handleStatusUpdate('CANCELLED')}
+                disabled={!!updating}
+                style={{ flex: 1, padding: '9px', borderRadius: 8, border: 'none', background: '#dc2626', fontSize: 13, fontWeight: 700, color: '#fff', cursor: updating ? 'not-allowed' : 'pointer', fontFamily: 'inherit', opacity: updating ? 0.7 : 1 }}
+              >
+                {updating === 'CANCELLED' ? 'Cancelling…' : 'Yes, Cancel'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -1,5 +1,19 @@
 import { useEffect, useState } from 'react'
 import { customersApi } from '../api/customers'
+import { useToast } from '../context/ToastContext'
+
+function exportCSV(filename: string, headers: string[], rows: string[][]) {
+  const csvContent = [headers, ...rows]
+    .map(r => r.map(cell => `"${(cell ?? '').replace(/"/g, '""')}"`).join(','))
+    .join('\n')
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  a.click()
+  URL.revokeObjectURL(url)
+}
 
 interface Customer {
   id: string
@@ -46,6 +60,7 @@ function Modal({ title, onClose, children }: { title: string; onClose: () => voi
 }
 
 export default function CustomersPage() {
+  const { toast } = useToast()
   const [customers, setCustomers] = useState<Customer[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -96,13 +111,16 @@ export default function CustomersPage() {
     try {
       if (editing) {
         await customersApi.update(editing.id, form)
+        toast('Customer updated successfully')
       } else {
         await customersApi.create(form)
+        toast('Customer added successfully')
       }
       setShowModal(false)
       load()
-    } catch (err: any) {
-      setFormError(err?.response?.data?.message || 'Failed to save customer.')
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
+      setFormError(msg || 'Failed to save customer.')
     } finally {
       setSaving(false)
     }
@@ -114,12 +132,23 @@ export default function CustomersPage() {
     try {
       await customersApi.delete(deleteId)
       setDeleteId(null)
+      toast('Customer deleted')
       load()
     } catch {
       setDeleteId(null)
+      toast('Failed to delete customer', 'error')
     } finally {
       setDeleting(false)
     }
+  }
+
+  const handleExportCSV = () => {
+    exportCSV(
+      `customers-${new Date().toISOString().slice(0, 10)}.csv`,
+      ['Name', 'Email', 'Phone', 'Billing Address', 'GSTIN'],
+      customers.map(c => [c.name, c.email, c.phone ?? '', c.billingAddress ?? '', c.gstin ?? ''])
+    )
+    toast('Customers exported to CSV')
   }
 
   const filtered = customers.filter(c =>
@@ -148,16 +177,32 @@ export default function CustomersPage() {
             {loading ? 'Loading…' : `${customers.length} customer${customers.length !== 1 ? 's' : ''} in your workspace`}
           </p>
         </div>
-        <button
-          onClick={openCreate}
-          style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#4f46e5', color: '#fff', fontWeight: 700, padding: '9px 18px', borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 13, fontFamily: 'inherit', boxShadow: '0 1px 3px rgba(79,70,229,0.3)' }}
-        >
-          <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
-            <line x1="6.5" y1="1" x2="6.5" y2="12" stroke="white" strokeWidth="2" strokeLinecap="round" />
-            <line x1="1" y1="6.5" x2="12" y2="6.5" stroke="white" strokeWidth="2" strokeLinecap="round" />
-          </svg>
-          Add Customer
-        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          {customers.length > 0 && (
+            <button
+              onClick={handleExportCSV}
+              style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 16px', borderRadius: 8, border: '1.5px solid #e2e8f0', background: '#fff', fontSize: 13, fontWeight: 600, color: '#374151', cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s' }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = '#4f46e5'; e.currentTarget.style.color = '#4f46e5' }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = '#e2e8f0'; e.currentTarget.style.color = '#374151' }}
+            >
+              <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+                <path d="M6.5 1v7M4 5.5l2.5 2.5L9 5.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M1 10v1a1 1 0 001 1h9a1 1 0 001-1v-1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              </svg>
+              Export CSV
+            </button>
+          )}
+          <button
+            onClick={openCreate}
+            style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#4f46e5', color: '#fff', fontWeight: 700, padding: '9px 18px', borderRadius: 8, border: 'none', cursor: 'pointer', fontSize: 13, fontFamily: 'inherit', boxShadow: '0 1px 3px rgba(79,70,229,0.3)' }}
+          >
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+              <line x1="6.5" y1="1" x2="6.5" y2="12" stroke="white" strokeWidth="2" strokeLinecap="round" />
+              <line x1="1" y1="6.5" x2="12" y2="6.5" stroke="white" strokeWidth="2" strokeLinecap="round" />
+            </svg>
+            Add Customer
+          </button>
+        </div>
       </div>
 
       {error && (
