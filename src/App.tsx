@@ -7,6 +7,8 @@ import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import DashboardPage from './pages/DashboardPage'
 import CustomersPage from './pages/CustomersPage'
+import InvoicesPage from './pages/InvoicesPage'
+import CreateInvoicePage from './pages/CreateInvoicePage'
 
 export default function App() {
   return (
@@ -23,7 +25,8 @@ export default function App() {
             <Route element={<AppShell />}>
               <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/customers" element={<CustomersPage />} />
-              <Route path="/invoices" element={<DashboardPage />} />
+              <Route path="/invoices" element={<InvoicesPage />} />
+              <Route path="/invoices/new" element={<CreateInvoicePage />} />
               <Route path="/payments" element={<DashboardPage />} />
             </Route>
           </Route>
