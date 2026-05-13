@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { invoicesApi, type InvoiceStatus } from '../api/invoices'
+import { customersApi } from '../api/customers'
 import { useToast } from '../context/ToastContext'
 
 interface LineItem {
@@ -8,7 +9,7 @@ interface LineItem {
   quantity: number
   unitPrice: number
   taxRate: number
-  amount: number
+  lineTotal: number
 }
 
 interface Invoice {
@@ -19,12 +20,21 @@ interface Invoice {
   dueDate: string
   currency: string
   notes?: string
-  subtotalAmount: number
+  subtotal: number
   taxAmount: number
   totalAmount: number
-  customer: { id: string; name: string; email: string; phone?: string; billingAddress?: string; gstin?: string }
+  customerId: string
   items: LineItem[]
   createdAt: string
+}
+
+interface CustomerInfo {
+  id: string
+  name: string
+  email: string
+  phone?: string
+  billingAddress?: string
+  gstin?: string
 }
 
 const statusConfig: Record<InvoiceStatus, { label: string; color: string; bg: string; border: string }> = {
@@ -57,6 +67,7 @@ export default function InvoiceDetailPage() {
   const navigate = useNavigate()
   const { toast } = useToast()
   const [invoice, setInvoice] = useState<Invoice | null>(null)
+  const [customer, setCustomer] = useState<CustomerInfo | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [updating, setUpdating] = useState<InvoiceStatus | null>(null)
@@ -68,7 +79,16 @@ export default function InvoiceDetailPage() {
     setLoading(true)
     try {
       const res = await invoicesApi.getById(id)
-      setInvoice(res.data)
+      const inv: Invoice = res.data
+      setInvoice(inv)
+      if (inv.customerId) {
+        try {
+          const custRes = await customersApi.getById(inv.customerId)
+          setCustomer(custRes.data)
+        } catch {
+          // customer fetch failed — show blank
+        }
+      }
     } catch {
       setError('Invoice not found.')
     } finally {
@@ -240,13 +260,13 @@ export default function InvoiceDetailPage() {
                 </div>
               ) : (
                 <>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: '#0f172a', marginBottom: 4 }}>{invoice?.customer?.name}</div>
-                  <div style={{ fontSize: 13, color: '#64748b', marginBottom: 2 }}>{invoice?.customer?.email}</div>
-                  {invoice?.customer?.phone && <div style={{ fontSize: 13, color: '#64748b', marginBottom: 2 }}>{invoice.customer.phone}</div>}
-                  {invoice?.customer?.billingAddress && <div style={{ fontSize: 12, color: '#94a3b8', lineHeight: 1.5, marginTop: 4 }}>{invoice.customer.billingAddress}</div>}
-                  {invoice?.customer?.gstin && (
+                  <div style={{ fontSize: 14, fontWeight: 700, color: '#0f172a', marginBottom: 4 }}>{customer?.name ?? '—'}</div>
+                  <div style={{ fontSize: 13, color: '#64748b', marginBottom: 2 }}>{customer?.email}</div>
+                  {customer?.phone && <div style={{ fontSize: 13, color: '#64748b', marginBottom: 2 }}>{customer.phone}</div>}
+                  {customer?.billingAddress && <div style={{ fontSize: 12, color: '#94a3b8', lineHeight: 1.5, marginTop: 4 }}>{customer.billingAddress}</div>}
+                  {customer?.gstin && (
                     <div style={{ marginTop: 6 }}>
-                      <span style={{ fontSize: 11, fontFamily: 'monospace', background: '#f1f5f9', color: '#475569', padding: '2px 8px', borderRadius: 4 }}>GST: {invoice.customer.gstin}</span>
+                      <span style={{ fontSize: 11, fontFamily: 'monospace', background: '#f1f5f9', color: '#475569', padding: '2px 8px', borderRadius: 4 }}>GST: {customer.gstin}</span>
                     </div>
                   )}
                 </>
@@ -314,7 +334,7 @@ export default function InvoiceDetailPage() {
                       <td style={{ padding: '13px 0', fontSize: 13, color: '#64748b', textAlign: 'right' }}>{item.quantity}</td>
                       <td style={{ padding: '13px 0', fontSize: 13, color: '#64748b', textAlign: 'right' }}>{fmt(item.unitPrice, invoice.currency)}</td>
                       <td style={{ padding: '13px 0', fontSize: 13, color: '#64748b', textAlign: 'right' }}>{item.taxRate}%</td>
-                      <td style={{ padding: '13px 0', fontSize: 13, color: '#0f172a', fontWeight: 600, textAlign: 'right' }}>{fmt(item.amount, invoice.currency)}</td>
+                      <td style={{ padding: '13px 0', fontSize: 13, color: '#0f172a', fontWeight: 600, textAlign: 'right' }}>{fmt(item.lineTotal, invoice.currency)}</td>
                     </tr>
                   ))
                 )}
@@ -335,7 +355,7 @@ export default function InvoiceDetailPage() {
                 <>
                   <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', fontSize: 13, color: '#64748b', borderBottom: '1px solid #f1f5f9' }}>
                     <span>Subtotal</span>
-                    <span style={{ fontWeight: 600, color: '#0f172a' }}>{fmt(invoice?.subtotalAmount ?? 0, invoice?.currency)}</span>
+                    <span style={{ fontWeight: 600, color: '#0f172a' }}>{fmt(invoice?.subtotal ?? 0, invoice?.currency)}</span>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', fontSize: 13, color: '#64748b', borderBottom: '1px solid #f1f5f9' }}>
                     <span>Tax</span>
@@ -418,7 +438,7 @@ export default function InvoiceDetailPage() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {[
                   { label: 'Invoice No.', value: invoice?.invoiceNumber, mono: true },
-                  { label: 'Customer', value: invoice?.customer?.name },
+                  { label: 'Customer', value: customer?.name },
                   { label: 'Items', value: `${invoice?.items?.length} line item${invoice?.items?.length !== 1 ? 's' : ''}` },
                   { label: 'Currency', value: invoice?.currency },
                   { label: 'Created', value: invoice?.createdAt ? new Date(invoice.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '—' },

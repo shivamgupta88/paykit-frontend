@@ -50,6 +50,18 @@ const navItems = [
       </svg>
     ),
   },
+  {
+    to: '/wallet',
+    label: 'Wallet',
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+        <rect x="1" y="4" width="13" height="9" rx="1.5" stroke="currentColor" strokeWidth="1.5" opacity="0.9" />
+        <path d="M1 7h13" stroke="currentColor" strokeWidth="1.5" opacity="0.6" />
+        <circle cx="11.5" cy="9.5" r="1" fill="currentColor" opacity="0.9" />
+        <path d="M4 2l2-1h4l2 1" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" opacity="0.4" />
+      </svg>
+    ),
+  },
 ]
 
 export default function AppShell() {

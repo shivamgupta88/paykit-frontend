@@ -12,6 +12,8 @@ import InvoicesPage from './pages/InvoicesPage'
 import CreateInvoicePage from './pages/CreateInvoicePage'
 import InvoiceDetailPage from './pages/InvoiceDetailPage'
 import PaymentsPage from './pages/PaymentsPage'
+import WalletPage from './pages/WalletPage'
+import PublicPaymentPage from './pages/PublicPaymentPage'
 
 export default function App() {
   return (
@@ -23,6 +25,7 @@ export default function App() {
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
+          <Route path="/pay/:invoiceId" element={<PublicPaymentPage />} />
 
           {/* Protected — wrapped in sidebar shell */}
           <Route element={<ProtectedRoute />}>
@@ -33,6 +36,7 @@ export default function App() {
               <Route path="/invoices/new" element={<CreateInvoicePage />} />
               <Route path="/invoices/:id" element={<InvoiceDetailPage />} />
               <Route path="/payments" element={<PaymentsPage />} />
+              <Route path="/wallet" element={<WalletPage />} />
             </Route>
           </Route>
 

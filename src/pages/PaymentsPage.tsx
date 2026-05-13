@@ -65,6 +65,7 @@ export default function PaymentsPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [initiating, setInitiating] = useState<string | null>(null) // invoiceId
+  const [copied, setCopied] = useState<string | null>(null) // invoiceId
   const [payments, setPayments] = useState<Record<string, Payment[]>>({}) // invoiceId → payments
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [payError, setPayError] = useState('')
@@ -102,6 +103,15 @@ export default function PaymentsPage() {
       setExpandedId(invoiceId)
       loadPaymentsForInvoice(invoiceId)
     }
+  }
+
+  const handleCopyLink = (invoiceId: string) => {
+    const link = `${window.location.origin}/pay/${invoiceId}`
+    navigator.clipboard.writeText(link).then(() => {
+      setCopied(invoiceId)
+      toast('Payment link copied!')
+      setTimeout(() => setCopied(null), 2500)
+    })
   }
 
   const handleCollectPayment = async (invoice: Invoice) => {
@@ -258,11 +268,20 @@ export default function PaymentsPage() {
                       </td>
                       <td style={{ padding: '13px 20px' }}>
                         <button
-                          onClick={() => handleCollectPayment(inv)}
-                          disabled={initiating === inv.id}
-                          style={{ padding: '7px 14px', borderRadius: 7, border: 'none', background: '#4f46e5', color: '#fff', fontSize: 12, fontWeight: 700, cursor: initiating === inv.id ? 'not-allowed' : 'pointer', fontFamily: 'inherit', opacity: initiating === inv.id ? 0.7 : 1, whiteSpace: 'nowrap', boxShadow: '0 1px 3px rgba(79,70,229,0.25)' }}
+                          onClick={() => handleCopyLink(inv.id)}
+                          style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 7, border: '1.5px solid #4f46e5', background: copied === inv.id ? '#4f46e5' : '#fff', color: copied === inv.id ? '#fff' : '#4f46e5', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap', transition: 'all 0.15s' }}
                         >
-                          {initiating === inv.id ? 'Opening…' : 'Collect Payment'}
+                          {copied === inv.id ? (
+                            <>✓ Copied!</>
+                          ) : (
+                            <>
+                              <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                                <rect x="4" y="4" width="7" height="7" rx="1" stroke="currentColor" strokeWidth="1.4"/>
+                                <path d="M8 4V2a1 1 0 00-1-1H2a1 1 0 00-1 1v5a1 1 0 001 1h2" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round"/>
+                              </svg>
+                              Copy Payment Link
+                            </>
+                          )}
                         </button>
                       </td>
                     </tr>

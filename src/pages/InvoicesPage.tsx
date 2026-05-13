@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { invoicesApi, type InvoiceStatus } from '../api/invoices'
+import { customersApi } from '../api/customers'
 import { useToast } from '../context/ToastContext'
 
 interface Invoice {
   id: string
   invoiceNumber: string
-  customer: { id: string; name: string; email: string }
+  customerId: string
   totalAmount: number
   status: InvoiceStatus
   issueDate: string
@@ -56,6 +57,7 @@ export default function InvoicesPage() {
   const navigate = useNavigate()
   const { toast } = useToast()
   const [invoices, setInvoices] = useState<Invoice[]>([])
+  const [customerMap, setCustomerMap] = useState<Record<string, { name: string; email: string }>>({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [activeTab, setActiveTab] = useState<InvoiceStatus | 'ALL'>('ALL')
@@ -66,9 +68,17 @@ export default function InvoicesPage() {
     const load = async () => {
       setLoading(true)
       try {
-        const res = await invoicesApi.list(undefined, 0, 200)
+        const [invRes, custRes] = await Promise.all([
+          invoicesApi.list(undefined, 0, 200),
+          customersApi.list(0, 200),
+        ])
         if (!controller.signal.aborted) {
-          setInvoices(res.data.content ?? res.data ?? [])
+          setInvoices(invRes.data.content ?? invRes.data ?? [])
+          const customers: { id: string; name: string; email: string }[] =
+            custRes.data.content ?? custRes.data ?? []
+          const map: Record<string, { name: string; email: string }> = {}
+          customers.forEach(c => { map[c.id] = { name: c.name, email: c.email } })
+          setCustomerMap(map)
         }
       } catch {
         if (!controller.signal.aborted) {
@@ -91,8 +101,8 @@ export default function InvoicesPage() {
   const filtered = search.trim()
     ? byStatus.filter(i =>
         i.invoiceNumber.toLowerCase().includes(search.toLowerCase()) ||
-        i.customer?.name?.toLowerCase().includes(search.toLowerCase()) ||
-        i.customer?.email?.toLowerCase().includes(search.toLowerCase())
+        customerMap[i.customerId]?.name?.toLowerCase().includes(search.toLowerCase()) ||
+        customerMap[i.customerId]?.email?.toLowerCase().includes(search.toLowerCase())
       )
     : byStatus
 
@@ -104,8 +114,8 @@ export default function InvoicesPage() {
   const handleExportCSV = () => {
     const rows = filtered.map(i => [
       i.invoiceNumber,
-      i.customer?.name ?? '',
-      i.customer?.email ?? '',
+      customerMap[i.customerId]?.name ?? '',
+      customerMap[i.customerId]?.email ?? '',
       String(i.totalAmount),
       i.currency,
       i.status,
@@ -265,8 +275,8 @@ export default function InvoicesPage() {
                       {inv.invoiceNumber}
                     </td>
                     <td style={{ padding: '13px 20px' }}>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: '#0f172a' }}>{inv.customer?.name ?? '—'}</div>
-                      <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 1 }}>{inv.customer?.email ?? ''}</div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: '#0f172a' }}>{customerMap[inv.customerId]?.name ?? '—'}</div>
+                      <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 1 }}>{customerMap[inv.customerId]?.email ?? ''}</div>
                     </td>
                     <td style={{ padding: '13px 20px', fontSize: 13, fontWeight: 700, color: '#0f172a', whiteSpace: 'nowrap' }}>
                       {fmt(inv.totalAmount, inv.currency)}
