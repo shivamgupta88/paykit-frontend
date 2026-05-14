@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useParams, Link, useNavigate } from 'react-router-dom'
+import { useParams, Link } from 'react-router-dom'
 import { invoicesApi, type InvoiceStatus } from '../api/invoices'
 import { customersApi } from '../api/customers'
 import { useToast } from '../context/ToastContext'
@@ -64,7 +64,6 @@ function SkeletonBlock({ h, w = '100%' }: { h: number; w?: string | number }) {
 
 export default function InvoiceDetailPage() {
   const { id } = useParams<{ id: string }>()
-  const navigate = useNavigate()
   const { toast } = useToast()
   const [invoice, setInvoice] = useState<Invoice | null>(null)
   const [customer, setCustomer] = useState<CustomerInfo | null>(null)

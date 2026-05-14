@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { invoicesApi, type InvoiceStatus } from '../api/invoices'
 import { paymentsApi } from '../api/payments'
+import { useToast } from '../context/ToastContext'
 
 interface Invoice {
   id: string
@@ -58,13 +59,13 @@ function useRazorpay(onError: () => void) {
 }
 
 export default function PaymentsPage() {
+  const { toast } = useToast()
   const [rzpLoadError, setRzpLoadError] = useState(false)
   useRazorpay(() => setRzpLoadError(true))
 
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [initiating, setInitiating] = useState<string | null>(null) // invoiceId
   const [copied, setCopied] = useState<string | null>(null) // invoiceId
   const [payments, setPayments] = useState<Record<string, Payment[]>>({}) // invoiceId → payments
   const [expandedId, setExpandedId] = useState<string | null>(null)
@@ -112,52 +113,6 @@ export default function PaymentsPage() {
       toast('Payment link copied!')
       setTimeout(() => setCopied(null), 2500)
     })
-  }
-
-  const handleCollectPayment = async (invoice: Invoice) => {
-    setPayError('')
-    setInitiating(invoice.id)
-    try {
-      const res = await paymentsApi.initiate(invoice.id)
-      const { razorpayOrderId, amount, currency, keyId } = res.data
-
-      const Razorpay = (window as any).Razorpay
-      if (!Razorpay) {
-        setPayError('Razorpay failed to load. Please refresh and try again.')
-        return
-      }
-
-      const rzp = new Razorpay({
-        key: keyId,
-        amount,
-        currency,
-        order_id: razorpayOrderId,
-        name: 'PayKit',
-        description: `Payment for ${invoice.invoiceNumber}`,
-        prefill: {
-          email: invoice.customer?.email,
-        },
-        theme: { color: '#4f46e5' },
-        handler: async (response: any) => {
-          try {
-            await paymentsApi.verify({
-              razorpayOrderId: response.razorpay_order_id,
-              razorpayPaymentId: response.razorpay_payment_id,
-              razorpaySignature: response.razorpay_signature,
-            })
-            await loadInvoices()
-          } catch {
-            setPayError('Payment verification failed. Contact support.')
-          }
-        },
-      })
-      rzp.open()
-    } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message
-      setPayError(msg || 'Failed to initiate payment.')
-    } finally {
-      setInitiating(null)
-    }
   }
 
   const sentAndOverdue = invoices.filter(i => i.status === 'SENT' || i.status === 'OVERDUE')
